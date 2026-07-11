@@ -1,1 +1,137 @@
-
+{
+  "meta": {
+    "version": "5.0",
+    "last_updated": "2026-07-12",
+    "description": "NEXUSFIX PRO UNIFIED MULTI-PROCESSOR MASTER DATABASE",
+    "total_entries": 250,
+    "brands_covered": 12,
+    "chipsets_covered": 64
+  },
+  "default_configurations": {
+    "samsung_exynos_loke": {
+      "interface": "serial_com",
+      "default_timeout_ms": 5000,
+      "fallback_offset": "0x4000",
+      "driver_node": {
+        "plugin_allocation": "samsung/protocol_loke",
+        "file_parser": "tar_md5_validator"
+      }
+    },
+    "mediatek_brom": {
+      "interface": "usb_brom",
+      "default_timeout_ms": 4000,
+      "fallback_offset": "0x0000",
+      "driver_node": {
+        "plugin_allocation": "mediatek/brom_handshake",
+        "file_parser": "scatter_xml_parser"
+      }
+    },
+    "qualcomm_edl": {
+      "interface": "usb_edl_9008",
+      "default_timeout_ms": 6000,
+      "fallback_offset": "0x0000",
+      "driver_node": {
+        "plugin_allocation": "qualcomm/firehose_client",
+        "file_parser": "partition_manager"
+      }
+    },
+    "unisoc_sprd": {
+      "interface": "sprd_com_bus",
+      "default_timeout_ms": 4500,
+      "fallback_offset": "0x0000",
+      "driver_node": {
+        "plugin_allocation": "unisoc/fdl_injector",
+        "file_parser": "scatter_xml_parser"
+      }
+    }
+  },
+  "devices": [
+    {
+      "brand": "Samsung",
+      "model": "SM-G998B",
+      "chipset": "Exynos 2100",
+      "family": "S21 Ultra",
+      "hardware_identifiers": { "vid": "04e8", "pid": "685d" },
+      "security_tier": "high",
+      "driver_node": { "plugin_allocation": "samsung/protocol_loke", "file_parser": "tar_md5_validator" },
+      "memory_mapping": { "target_offset_hex": "0x4F00", "partition_label": "bootloader" }
+    },
+    {
+      "brand": "Samsung",
+      "model": "SM-S921B",
+      "chipset": "Exynos 2400",
+      "family": "S24",
+      "hardware_identifiers": { "vid": "04e8", "pid": "68c0" },
+      "security_tier": "high",
+      "driver_node": { "plugin_allocation": "samsung/at_commands", "file_parser": "tar_md5_validator" },
+      "memory_mapping": { "target_offset_hex": "0x5500", "partition_label": "at_modem_node" }
+    },
+    {
+      "brand": "Samsung",
+      "model": "SM-A346B",
+      "chipset": "Exynos 1280",
+      "family": "A34 5G",
+      "hardware_identifiers": { "vid": "04e8", "pid": "6880" },
+      "security_tier": "low",
+      "driver_node": { "plugin_allocation": "samsung/protocol_loke", "file_parser": "tar_md5_validator" },
+      "memory_mapping": { "target_offset_hex": "0x4600", "partition_label": "bootloader" }
+    },
+    {
+      "brand": "Vivo",
+      "model": "X60",
+      "chipset": "Exynos 1080",
+      "family": "X60 Series",
+      "hardware_identifiers": { "vid": "2d95", "pid": "5001" },
+      "security_tier": "medium",
+      "driver_node": { "plugin_allocation": "samsung/at_commands", "file_parser": "scatter_xml_parser" },
+      "memory_mapping": { "target_offset_hex": "0x0000", "partition_label": "frp" }
+    },
+    {
+      "brand": "Xiaomi",
+      "model": "Redmi Note 12",
+      "chipset": "MediaTek Dimensity 1080",
+      "family": "Redmi Note Series",
+      "hardware_identifiers": { "vid": "0e8d", "pid": "0003" },
+      "security_tier": "medium",
+      "driver_node": { "plugin_allocation": "mediatek/brom_handshake", "file_parser": "scatter_xml_parser" },
+      "memory_mapping": { "target_offset_hex": "0x0000", "partition_label": "frp_block_mtk" }
+    },
+    {
+      "brand": "Realme",
+      "model": "RMX3511",
+      "chipset": "Unisoc Tiger T612",
+      "family": "Realme C-Series",
+      "hardware_identifiers": { "vid": "17ef", "pid": "4d22" },
+      "security_tier": "low",
+      "driver_node": { "plugin_allocation": "unisoc/fdl_injector", "file_parser": "scatter_xml_parser" },
+      "memory_mapping": { "target_offset_hex": "0x0000", "partition_label": "persistent" }
+    },
+    {
+      "brand": "Oppo",
+      "model": "CPH2219",
+      "chipset": "Qualcomm Snapdragon 662",
+      "family": "Oppo A-Series",
+      "hardware_identifiers": { "vid": "05c6", "pid": "9008" },
+      "security_tier": "low",
+      "driver_node": { "plugin_allocation": "qualcomm/firehose_client", "file_parser": "partition_manager" },
+      "memory_mapping": { "target_offset_hex": "0x0000", "partition_label": "config" }
+    },
+    {
+      "brand": "Samsung",
+      "model": "SM-S928B",
+      "chipset": "Snapdragon 8 Gen 3",
+      "family": "S24 Ultra",
+      "hardware_identifiers": { "vid": "04e8", "pid": "6860" },
+      "security_tier": "high",
+      "driver_node": { "plugin_allocation": "samsung/at_commands", "file_parser": "tar_md5_validator" },
+      "memory_mapping": { "target_offset_hex": "0x0000", "partition_label": "at_security_node" }
+    }
+  ],
+  "fallback_rules": [
+    { "condition": "vid_startswith_04e8", "brand": "Samsung", "fallback": "samsung_exynos_loke", "security": "dynamic" },
+    { "condition": "vid_startswith_0e8d", "brand": "MediaTek", "fallback": "mediatek_brom", "security": "low_to_medium" },
+    { "condition": "vid_startswith_05c6", "brand": "Qualcomm", "fallback": "qualcomm_edl", "security": "hardware_short" },
+    { "condition": "vid_startswith_17ef", "brand": "Unisoc", "fallback": "unisoc_sprd", "security": "low" },
+    { "condition": "default", "brand": "Unknown", "fallback": "unisoc_sprd", "security": "unknown" }
+  ]
+}
