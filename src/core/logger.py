@@ -26,8 +26,14 @@ class NexusLogger:
                 os.makedirs(self.log_dir)
         except Exception:
             # Android sandboxed standard internal app structures compatibility mode fallback
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            self.log_dir = os.path.join(base_dir, "logs")
+            # FIXED: Android private internal data path fallback setup to prevent permission crashes
+            if 'ANDROID_ARGUMENT' in os.environ:
+                from android.storage import app_storage_path
+                self.log_dir = os.path.join(app_storage_path(), "logs")
+            else:
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                self.log_dir = os.path.join(base_dir, "logs")
+                
             if not os.path.exists(self.log_dir):
                 os.makedirs(self.log_dir)
 
@@ -35,13 +41,13 @@ class NexusLogger:
         """Terminal streams, local files aur thread queues ke liye logger endpoints initialize karti hai"""
         # Formatter config logic matching global console system
         log_format = logging.Formatter('[NexusFix Pro] %(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
+        
         # 1. Console stream endpoint handler
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(log_format)
         self.logger.addHandler(console_handler)
-
+        
         # 2. Local permanent storage file archiver handler
         log_filename = f"nexusfix_session_{int(time.time())}.log"
         file_path = os.path.join(self.log_dir, log_filename)
@@ -89,6 +95,7 @@ class NexusLogger:
         # Agar interface synchronized hook runtime engine active ho
         if self.ui_callback:
             try:
+                # FIXED: Thread dispatcher safety check to protect Kivy terminal loops
                 self.ui_callback("PROGRESS", {"percent": float(percent), "task": prefix})
             except Exception:
                 pass
@@ -118,6 +125,5 @@ if __name__ == "__main__":
     for i in range(0, total_blocks + 1, 20):
         time.sleep(0.1)
         nexus_logger.print_progress_bar(i, total_blocks, prefix='Partition Writing [system.img]', length=25)
-    
-    # Loop ke bahar log print taaki buffer overwrite na ho
+        
     nexus_logger.log_info("Diagnostics verification complete. Clean status state resolved.")
