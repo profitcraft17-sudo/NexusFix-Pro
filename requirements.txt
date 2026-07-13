@@ -1,1 +1,19 @@
+# ==========================================================
+# NEXUSFIX-PRO MAIN DEPENDENCY INDEX (ANDROID STACK 2026)
+# ==========================================================
 
+# Core UI Framework Components
+kivy==2.3.0
+
+# Native Android JNI Bridge Bridge Layer Configuration
+# (Buildozer requires explicit native compilation parameters)
+pyjnius>=1.6.0; sys_platform == 'android'
+
+# Desktop simulation helper for local compilation checks
+pyjnius>=1.6.0; sys_platform != 'android'
+
+# Hardware tracking drivers framework dependencies (Desktop fallback engines)
+pyusb>=1.2.1
+
+# System performance optimizations parameters
+certifi>=2024.2.2
