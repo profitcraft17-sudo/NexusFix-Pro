@@ -1,0 +1,45 @@
+name: NexusFix Pro APK CI Compiler
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Isse aap manually bhi jab chahein button daba kar build start kar sakte hain
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout Code Blueprint
+      uses: actions/checkout@v4
+
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-data: '3.10'
+
+    - name: Set up JDK 17 (Android Compliance)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Install Compiler Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libffi-dev libgstreamer1.0-dev
+        pip install --upgrade pip
+        pip install buildozer cython virtualenv kivy
+
+    - name: Generate Buildozer Target Pipeline
+      run: |
+        # Buildozer commands runs here automatically using buildozer.spec
+        buildozer android debug
+
+    - name: Upload Final Bootable APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: NexusFix-Pro-Debug-APK
+        path: bin/*.apk
