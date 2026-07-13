@@ -38,8 +38,12 @@ class MediaTekMemoryCleaner:
         # Simulating operational structure writes across memory blocks
         total_sectors = size // self.BLOCK_SIZE if size >= self.BLOCK_SIZE else 1
         for sector in range(1, total_sectors + 1):
+            # FIXED: Added live visual tracking bridge to keep the UI terminal active during long memory wipes
+            if sector % max(1, (total_sectors // 10)) == 0 or sector == total_sectors:
+                nexus_logger.print_progress_bar(sector, total_sectors, prefix="Processing Memory Blocks")
+            
             nexus_logger.log_debug(f"Syncing memory interface data stream -> Sector index: [ {sector}/{total_sectors} ]")
-            time.sleep(0.05)
+            time.sleep(0.01)
             
         nexus_logger.log_info("Low-level memory array registers processed successfully.")
         return True
@@ -56,8 +60,17 @@ def initialize_execution(metadata):
     cleaner = MediaTekMemoryCleaner()
     
     # Extracting core structural properties passed by routing framework
-    target_offset = metadata.get("partition_start_offset", 0x0A200000)  # Conceptual mock memory region offset
-    operation_size = metadata.get("partition_block_size", 0x00080000)   # Conceptual mock area sector size
+    raw_offset = metadata.get("partition_start_offset", 0x0A200000)
+    raw_size = metadata.get("partition_block_size", 0x00080000)
+    
+    # FIXED: Added safe type casting wrapper to convert hexadecimal strings from V5.0 database into clean Python integers
+    try:
+        target_offset = int(raw_offset, 16) if isinstance(raw_offset, str) else int(raw_offset)
+        operation_size = int(raw_size, 16) if isinstance(raw_size, str) else int(raw_size)
+    except Exception:
+        # Fallback values if configuration descriptors parsing breaks
+        target_offset = 0x0A200000
+        operation_size = 0x00080000
     
     # Phase 1: Storage range transaction processing
     if not cleaner.process_buffer_transaction(target_offset, operation_size):
@@ -74,7 +87,7 @@ if __name__ == "__main__":
     nexus_logger.log_info("Local MediaTek Memory Cleaner Routine Validation Mode Engaged.")
     # Local simulation parameters mockup sequence
     test_meta = {
-        "partition_start_offset": 0x0A200000,
-        "partition_block_size": 0x00001000
+        "partition_start_offset": "0x0A200000",
+        "partition_block_size": "0x00001000"
     }
     initialize_execution(test_meta)
