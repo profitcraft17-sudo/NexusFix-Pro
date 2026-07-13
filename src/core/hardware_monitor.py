@@ -8,7 +8,7 @@ try:
     import usb.core
     import usb.util
     USB_SUPPORTED = True
-) except ImportError:
+except ImportError:  # Fixed: Syntax error removed here safely
     USB_SUPPORTED = False
 
 # Logger setup operations logs display ke liye
@@ -16,7 +16,11 @@ logging.basicConfig(level=logging.INFO, format='[NexusFix Pro] %(asctime)s - %(l
 logger = logging.getLogger("HardwareMonitor")
 
 class NexusHardwareMonitor:
-    def __init__(self, database_path=None):
+    def __init__(self, database_path=None, on_device_detected=None):
+        """
+        on_device_detected: Ye aapki main interface ya routing_matrix ka link hoga.
+        Iske bina ye file baki software se bilkul alag-thalag (isolated) rahegi.
+        """
         # Explicit baseline path alignment logic
         if database_path is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,6 +29,7 @@ class NexusHardwareMonitor:
             self.database_path = database_path
             
         self.signatures = self.load_database()
+        self.on_device_detected = on_device_detected  # Connectivity Interface Register
             
     def load_database(self):
         """Central global signatures library JSON file ko safely load karti hai"""
@@ -57,6 +62,7 @@ class NexusHardwareMonitor:
                     "status": "EXPLICIT_MATCH",
                     "brand": device["brand"],
                     "model": device["model"],
+                    "chipset_type": device["chipset"],
                     "driver_node": device["driver_node"],
                     "memory_mapping": device.get("memory_mapping", {})
                 }
@@ -72,6 +78,7 @@ class NexusHardwareMonitor:
                         "status": "FALLBACK_ROUTED",
                         "brand": rule["brand"],
                         "model": "Generic Variant",
+                        "chipset_type": "Unknown",
                         "fallback_node": rule.get("fallback"),
                         "security_profile": rule.get("security")
                     }
@@ -108,10 +115,13 @@ class NexusHardwareMonitor:
                                 
                                 if result:
                                     logger.info("Routing Pipeline State initialized for execution stream node.")
-                                    # Task delegation point: Next file layer link target location
+                                    
+                                    # FIXED: Yahan data agle pipeline layer/UI ko pass ho raha hai
+                                    if self.on_device_detected:
+                                        self.on_device_detected(result)
+                                        
                                 processed_devices.add(port_key)
                         except Exception as dev_err:
-                            # Individual node connection stream validation bypass protection
                             continue
 
                 # Disconnected nodes memory cleaner stack cleanup logic
@@ -123,5 +133,9 @@ class NexusHardwareMonitor:
             time.sleep(interval_seconds)
 
 if __name__ == "__main__":
-    monitor = NexusHardwareMonitor()
+    # Test block callback check karne ke liye
+    def sample_bridge(device_info):
+        print(f"\n[BRIDGE LINK SUCCESS] Device Data Transferred: {device_info}\n")
+
+    monitor = NexusHardwareMonitor(on_device_detected=sample_bridge)
     monitor.start_monitoring_loop()
