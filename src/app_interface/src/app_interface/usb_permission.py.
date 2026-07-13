@@ -1,1 +1,151 @@
+import os
+import sys
+import logging
+from src.core.logger import nexus_logger
 
+# System tracking contexts declaration
+logger = logging.getLogger("UsbPermissionHandler")
+
+# Global flags tracking hardware authorization contexts arrays
+ANDROID_PLATFORM_ACTIVE = False
+usb_manager_instance = None
+permission_intent_instance = None
+
+try:
+    # Android framework specific dynamic classes mapping hooks via PyJnius
+    from jnius import autoclass, cast
+    
+    # Importing strict native android subsystems components mapping vectors
+    PythonActivity = autoclass('org.kivy.android.PythonActivity')
+    Context = autoclass('android.content.Context')
+    Intent = autoclass('android.content.Intent')
+    PendingIntent = autoclass('android.app.PendingIntent')
+    IntentFilter = autoclass('android.content.IntentFilter')
+    BroadcastReceiver = autoclass('android.content.BroadcastReceiver')
+    
+    # Core USB classes mappings for low-level platform pipeline tracking
+    UsbManager = autoclass('android.hardware.usb.UsbManager')
+    UsbDevice = autoclass('android.hardware.usb.UsbDevice')
+    
+    ANDROID_PLATFORM_ACTIVE = True
+except ImportError:
+    # Safe isolation logging if executed outside an active android buildozer compiler environment
+    ANDROID_PLATFORM_ACTIVE = False
+
+class AndroidUsbPermissionManager:
+    """
+    High-Performance Native Android USB Host API Permission Handler Wrapper.
+    Forces open the system runtime permissions prompt sequence for OTG connections.
+    """
+    def __init__(self):
+        self.current_activity = None
+        self.usb_service_manager = None
+        self.action_usb_permission_string = "com.nexusfix.pro.USB_PERMISSION"
+        
+        if ANDROID_PLATFORM_ACTIVE:
+            self._initialize_native_android_contexts()
+        else:
+            nexus_logger.log_debug("Non-Android platform detected. Running USB Permission Engine in simulation mode.")
+
+    def _initialize_native_android_contexts(self):
+        """Tightly couples current Kivy thread context instances with Android system handles"""
+        try:
+            # Capturing localized active main activity application pointer context
+            self.current_activity = PythonActivity.mActivity
+            
+            # Fetching structural context native services registers maps
+            self.usb_service_manager = self.current_activity.getSystemService(Context.USB_SERVICE)
+            nexus_logger.log_info("Successfully attached application runtime context to Android native UsbManager backend.")
+        except Exception as context_fault:
+            nexus_logger.log_error(f"Critical error mapping native application environment handles -> {str(context_fault)}")
+
+    def scan_and_request_all_active_otg_devices(self):
+        """
+        Scans all low-level hardware nodes attached on device USB lines, and forcefully 
+        triggers the system pop-up permission dialog layout sequence if missing.
+        """
+        if not ANDROID_PLATFORM_ACTIVE:
+            nexus_logger.log_info("[SIMULATION] Scanning target ports connection states. Permissions approved by mock rules.")
+            return True
+
+        nexus_logger.log_info("Requesting raw list of connected external OTG nodes from Android Kernel...")
+        try:
+            # Pulling active dictionary profile registry maps
+            device_registry_map = self.usb_service_manager.getDeviceList()
+            if not device_registry_map or device_registry_map.isEmpty():
+                nexus_logger.log_info("No target hardware controllers identified on local OTG matrix lines.")
+                return False
+
+            iterator = device_registry_map.values().iterator()
+            
+            # FIXED: Tracking total connected devices vs those ready for data pipelines
+            total_devices_found = 0
+            ready_devices_count = 0
+
+            while iterator.hasNext():
+                raw_device_node = iterator.next()
+                casted_usb_device = cast('android.hardware.usb.UsbDevice', raw_device_node)
+                
+                vendor_id = casted_usb_device.getVendorId()
+                product_id = casted_usb_device.getProductId()
+                device_name = casted_usb_device.getDeviceName()
+
+                total_devices_found += 1
+                nexus_logger.log_info(f"Discovered Hardware Node Target -> Name: {device_name} [VID: {vendor_id} | PID: {product_id}]")
+
+                # Checking if the application context already contains active hardware execution leases
+                if not self.usb_service_manager.hasPermission(casted_usb_device):
+                    nexus_logger.log_info(f"Target node [{device_name}] is locked. Injecting high-priority permission prompt...")
+                    
+                    # Preparing PendingIntent layout stream token context for structural callback flags
+                    intent_token = Intent(self.action_usb_permission_string)
+                    
+                    # Strict security token flag compliance handling across target levels (PendingIntent.FLAG_MUTABLE)
+                    flag_mutable = 0x02000000 
+                    
+                    pending_intent_callback = PendingIntent.getBroadcast(
+                        self.current_activity, 
+                        0, 
+                        intent_token, 
+                        flag_mutable
+                    )
+                    
+                    # Forcefully throwing the system asynchronous window popup dialogue layer across display threads
+                    self.usb_service_manager.requestPermission(casted_usb_device, pending_intent_callback)
+                else:
+                    nexus_logger.log_info(f"Active communication channel lease already authorized for node: {device_name} ✅")
+                    ready_devices_count += 1
+
+            # FIXED: Returns True if any device was found (either prompted or already authorized)
+            return total_devices_found > 0
+
+        except Exception as scan_exception:
+            nexus_logger.log_error(f"Failed to scan hardware registry mapping due to system fault -> {str(scan_exception)}")
+            return False
+
+    def verify_specific_device_lease(self, target_vid, target_pid):
+        """Verification routine validating if custom processing parameters has clearance"""
+        if not ANDROID_PLATFORM_ACTIVE:
+            return True
+            
+        try:
+            device_registry_map = self.usb_service_manager.getDeviceList()
+            if device_registry_map and not device_registry_map.isEmpty():
+                iterator = device_registry_map.values().iterator()
+                while iterator.hasNext():
+                    device_node = iterator.next()
+                    casted_dev = cast('android.hardware.usb.UsbDevice', device_node)
+                    if casted_dev.getVendorId() == target_vid and casted_dev.getProductId() == target_pid:
+                        return self.usb_service_manager.hasPermission(casted_dev)
+            return False
+        except Exception:
+            return False
+
+def initialize_usb_permission_sequence():
+    """Universal hook framework integration mapping engine"""
+    permission_engine = AndroidUsbPermissionManager()
+    return permission_engine.scan_and_request_all_active_otg_devices()
+
+if __name__ == "__main__":
+    nexus_logger.log_info("Standalone test layer initialized for local Android USB Permission Module.")
+    initialize_usb_permission_sequence()
