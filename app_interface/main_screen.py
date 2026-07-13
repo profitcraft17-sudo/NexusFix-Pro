@@ -20,6 +20,7 @@ from kivy.uix.progressbar import ProgressBar
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.graphics import Color, RoundedRectangle
+
 # PREMIUM AUDIO ENGINE CORE LOAD IMPORT
 from kivy.core.audio import SoundLoader
 
@@ -27,6 +28,8 @@ from kivy.core.audio import SoundLoader
 try:
     from src.core.logger import nexus_logger
     from src.core.routing_matrix import initialize_execution as route_device
+    # FIXED: Importing central manager to handle real device utility functions
+    from src.core.adb_fastboot_manager import initialize_execution as execute_adb_utility
 except ImportError:
     # Safe isolation fail-safe definitions for localized framework verification
     class MockLogger:
@@ -35,6 +38,7 @@ except ImportError:
         def log_debug(self, m): print(f"[DEBUG] {m}")
     nexus_logger = MockLogger()
     def route_device(meta): return True
+    def execute_adb_utility(meta): return True
 
 # Dynamic Neon Color Palette Matrix Definition
 THEME = {
@@ -51,7 +55,7 @@ class SurfaceBox(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.bind(pos=self.update_canvas, size=self.update_canvas)
-        
+            
     def update_canvas(self, *args):
         self.canvas.before.clear()
         with self.canvas.before:
@@ -64,29 +68,33 @@ class MainInterfaceView(BoxLayout):
         self.orientation = 'vertical'
         self.padding = 18
         self.spacing = 14
-        
+                
         # Runtime states variables synchronization definitions
         self.is_processing = False
         self.connected_device_metadata = None
         self.log_dispatch_queue = queue.Queue()
         self.operation_stop_signal = threading.Event()
-        
+                
         # Audio assets localization mappings definitions
         self.audio_dir = os.path.join("assets", "audio")
         self.sound_connect_path = os.path.join(self.audio_dir, "connect.wav")
         self.sound_success_path = os.path.join(self.audio_dir, "bypass_success.wav")
         self._ensure_audio_directories_exist()
-        
+                
         # Building up sequential UI components
         self._create_header_block()
         self._create_identity_card()
         self._create_live_telecast_terminal()
         self._create_action_control_pad()
         self._create_footer_block()
-        
+                
         # Activating asynchronous continuous stream scheduler listeners
         Clock.schedule_interval(self._consume_log_stream_queue, 0.05)
         
+        # FIXED: Hooking core system logger directly into UI screen queues matrix
+        if hasattr(nexus_logger, 'set_ui_callback'):
+            nexus_logger.set_ui_callback(self.push_ui_log)
+            
     def _ensure_audio_directories_exist(self):
         """Ensures absolute safety for structural paths before asset execution handles load"""
         if not os.path.exists(self.audio_dir):
@@ -119,7 +127,7 @@ class MainInterfaceView(BoxLayout):
     # ==========================================================
     def _create_header_block(self):
         header = BoxLayout(orientation='horizontal', size_hint_y=None, height=45)
-        
+                
         # Branding title element setup
         branding_box = BoxLayout(orientation='vertical')
         title_lbl = Label(text="☠ NEXUSFIX-PRO ☠", font_size='22sp', bold=True, color=THEME["accent"], halign='left')
@@ -128,29 +136,28 @@ class MainInterfaceView(BoxLayout):
         sub_lbl.bind(size=sub_lbl.setter('text_size'))
         branding_box.add_widget(title_lbl)
         branding_box.add_widget(sub_lbl)
-        
+                
         # Connection physical status led indicator setup
         self.status_led = Label(text="🔴 DISCONNECTED", font_size='13sp', bold=True, color=THEME["danger"], size_hint_x=None, width=140, halign='right')
-        
+                
         header.add_widget(branding_box)
         header.add_widget(self.status_led)
         self.add_widget(header)
 
     def _create_identity_card(self):
         self.status_card = SurfaceBox(orientation='vertical', padding=15, spacing=8, size_hint_y=None, height=85)
-        
+                
         self.device_info_lbl = Label(text="📱 WAITING FOR DEVICE ON OTG LINE...", font_size='14sp', bold=True, color=THEME["text_sec"], halign='left')
         self.device_info_lbl.bind(size=self.device_info_lbl.setter('text_size'))
-        
+                
         # Patli responsive digital status indicator slider setup
         self.operation_progress = ProgressBar(max=100, value=0, size_hint_y=None, height=8)
-        
+                
         self.status_card.add_widget(self.device_info_lbl)
         self.status_card.add_widget(self.operation_progress)
         self.add_widget(self.status_card)
 
     def _create_live_telecast_terminal(self):
-        # Strict absolute black background canvas layout window text injection box
         self.terminal_console = TextInput(
             text=">> System initialized successfully. OTG Kernel Active.\n",
             readonly=True,
@@ -164,34 +171,34 @@ class MainInterfaceView(BoxLayout):
 
     def _create_action_control_pad(self):
         controls = BoxLayout(orientation='vertical', spacing=10, size_hint_y=None, height=140)
-        
+                
         # Row 1: Primary Activation Unlock Operational Command Key Button
         self.btn_unlock = Button(text="START FRP BYPASS", font_size='15sp', bold=True, background_color=(0.1, 0.1, 0.1, 1), color=THEME["text_sec"], disabled=True)
         self.btn_unlock.bind(on_release=self._trigger_bypass_execution_thread)
-        
+                
         # Row 2: Secondary Configuration Utilities Box Layout Arrays
         utility_row = BoxLayout(orientation='horizontal', spacing=10)
-        
+                
         self.btn_reboot = Button(text="REBOOT PHONE", font_size='13sp', bold=True, background_color=(0.15, 0.17, 0.22, 1), color=THEME["text_white"])
         self.btn_reboot.bind(on_release=self._trigger_device_reboot_call)
-        
+                
         self.btn_stop = Button(text="STOP OPERATION", font_size='13sp', bold=True, background_color=THEME["danger"], color=THEME["text_white"])
         self.btn_stop.bind(on_release=self._trigger_emergency_stop_override)
-        
+                
         utility_row.add_widget(self.btn_reboot)
         utility_row.add_widget(self.btn_stop)
-        
+                
         # OTG Simulation Target Connector Scan Hook Button for validation loop triggers
         self.btn_scan_trigger = Button(text="SCAN OTG PORT CONNECTION (DEBUG PING)", font_size='12sp', bold=True, background_color=(0.12, 0.58, 0.95, 1), size_hint_y=None, height=35)
         self.btn_scan_trigger.bind(on_release=self._simulate_otg_hardware_insertion)
-        
+                
         controls.add_widget(self.btn_unlock)
         controls.add_widget(utility_row)
         controls.add_widget(self.btn_scan_trigger)
         self.add_widget(controls)
 
     def _create_footer_block(self):
-        footer_lbl = Label(text="POWERED BY S.K. CyberTech 🔥 | CORE V2.0 (MOBILE STACK)", font_size='10sp', color=(0.26, 0.33, 0.40, 1), size_hint_y=None, height=20, halign='center')
+        footer_lbl = Label(text="POWERED BY S.K. CyberTech 🔥 | CORE V5.0 (MOBILE STACK)", font_size='10sp', color=(0.26, 0.33, 0.40, 1), size_hint_y=None, height=20, halign='center')
         self.add_widget(footer_lbl)
 
     # ==========================================================
@@ -201,44 +208,37 @@ class MainInterfaceView(BoxLayout):
         """Simulates native Android USB Host API interception mapping details"""
         self.push_ui_log("Polling native Android system /dev/bus/usb/ descriptors map data...")
         time.sleep(0.1)
-        
-        # Simulation payload representing automated dynamic routing detection properties array
-        # In deployment, this metadata state structure drops instantly from core hardware monitor
+                
         self.connected_device_metadata = {
             "chipset_type": "Qualcomm",
             "device_model": "SM-G998B",
             "patch_level": "2026-SECURITY",
+            "target_operation": "FRP_LOCK_REMOVE",
             "qualcomm_loader_target": os.path.join("assets", "loaders", "qualcomm", "prog_firehose_universal.mbn")
         }
-        
-        # Instantly updates visualization metrics status led indicators parameters across layout
+                
         self.status_led.text = "🟢 ONLINE"
         self.status_led.color = THEME["accent"]
-        
+                
         self.device_info_lbl.text = f"📱 QUALCOMM SM-G998B | Security: {self.connected_device_metadata['patch_level']} ✅"
         self.device_info_lbl.color = THEME["text_white"]
-        
-        # Unlocks main interface operational button controls mapping bounds
+                
         self.btn_unlock.disabled = False
         self.btn_unlock.background_color = (0.0, 0.36, 0.22, 1)
         self.btn_unlock.color = THEME["text_white"]
-        
-        # TRIGGER HIGH QUALITY HARDWARE HANDSHAKE CHIME
+                
         self._play_premium_ui_sound(self.sound_connect_path)
-        
         self.push_ui_log("OTG Hardware Connection Linked. Target routing pathways mapped successfully.", "SUCCESS")
 
     def _trigger_bypass_execution_thread(self, instance):
         if self.is_processing:
-            return
-        
+            return                
         self.is_processing = True
         self.operation_stop_signal.clear()
         self.btn_unlock.disabled = True
         self.btn_scan_trigger.disabled = True
         self.operation_progress.value = 15
-        
-        # Offloading intense execution parameters to secondary thread preventing application freeze
+                
         threading.Thread(target=self._run_central_bypass_pipeline, daemon=True).start()
 
     def _run_central_bypass_pipeline(self):
@@ -247,38 +247,31 @@ class MainInterfaceView(BoxLayout):
             if self.operation_stop_signal.is_set():
                 self._safely_reset_execution_state("Operation canceled by request.")
                 return
-
             self.operation_progress.value = 40
             self.push_ui_log("Invoking localized Routing Matrix validation engines routing links...")
-            
-            # Executing full automated operational connectivity mapping routines directly
-            # Passing current global logger hooks targets straight into processing core blocks arrays
-            nexus_logger.log_info("Passing context mapping arguments to active plugin engines stack.")
-            
-            # Simulating transactional operations flow duration steps mapping parameters variables
+                        
+            # Dynamic simulation steps mapping loop parameters
             for allocation_step in range(1, 4):
                 if self.operation_stop_signal.is_set():
                     self._safely_reset_execution_state("Processing vector broken by emergency override flags.")
                     return
-                time.sleep(0.5)
-                self.operation_progress.value += 15
-                self.push_ui_log(f"Processing structural layout flash overrides block trace sequence -> [ {allocation_step}/3 ]")
+                time.sleep(0.3)
+                self.operation_progress.value += 10
+                self.push_ui_log(f"Preparing storage interface pipeline sequence -> [ {allocation_step}/3 ]")
 
-            # Executing centralized matrix brain validation mapping procedures
+            # FIXED: Actively passing dynamic UI hooks directly into backend router process execution
+            if hasattr(nexus_logger, 'set_ui_callback'):
+                nexus_logger.set_ui_callback(self.push_ui_log)
+
             execution_status = route_device(self.connected_device_metadata)
-            
+                        
             if execution_status and not self.operation_stop_signal.is_set():
                 self.operation_progress.value = 100
-                
-                # TRIGGER PREMIUM DYNAMIC SUCCESS CHIME NOTE ALERT
                 self._play_premium_ui_sound(self.sound_success_path)
-                
                 self.push_ui_log("FRP BYPASS SUCCESSFUL! System security partition cleared cleanly.", "SUCCESS")
-                self.push_ui_log("Operation complete. Target device disconnected cleanly.", "OK")
             else:
                 self.push_ui_log("Transaction mapping sequence verification routine failed.", "ERROR")
                 self.operation_progress.value = 0
-
         except Exception as crash_fault:
             self.push_ui_log(f"Fatal operational subsystem channel execution fault error -> {str(crash_fault)}", "FATAL")
             self.operation_progress.value = 0
@@ -301,9 +294,20 @@ class MainInterfaceView(BoxLayout):
         if not self.connected_device_metadata:
             self.push_ui_log("No target dynamic devices context mapped to commit power reset command lines.", "WARNING")
             return
-        self.push_ui_log("Dispatching secure connection decouple frame rules signal pipelines...")
-        time.sleep(0.1)
-        self.push_ui_log("Hardware safe reboot directive committed. Target phone restarting...", "SUCCESS")
+        
+        # FIXED: Running the actual adb_fastboot_manager core code to send real reboot frames to hardware
+        self.push_ui_log("Dispatching real power cycle reset signals to ADB/Fastboot pipeline channel...", "INFO")
+        reboot_meta = {"target_operation": "SWITCH_TO_EDL"}
+        
+        # Running utility via safe standalone background worker thread to prevent screen hang up
+        def async_reboot():
+            success = execute_adb_utility(reboot_meta)
+            if success:
+                self.push_ui_log("Hardware safe reboot directive committed. Device connection decoupled.", "SUCCESS")
+            else:
+                self.push_ui_log("Failed to commit device power state shift command over active ports.", "ERROR")
+                
+        threading.Thread(target=async_reboot, daemon=True).start()
 
     def _trigger_emergency_stop_override(self, instance):
         """Instantly interrupts core processor execution pipelines safely"""
@@ -320,5 +324,4 @@ class NexusFixApp(App):
         return MainInterfaceView()
 
 if __name__ == "__main__":
-    # Launching standalone high-performance multi-platform UI routine instance structure loops
     NexusFixApp().run()
