@@ -34,13 +34,25 @@ jobs:
         pip install --upgrade pip
         pip install buildozer cython virtualenv kivy
 
-    - name: Generate Buildozer Target Pipeline
+    - name: Force Accept Android SDK Licenses Before Buildozer
       run: |
-        # FIXED: Automatically pipeline 'yes' to all Android SDK license prompts to prevent stalling
+        # Pre-creating systems paths to inject standard licenses directly
         mkdir -p ~/.android
         touch ~/.android/repositories.cfg
-        yes | buildozer android debug
         
+        # Creating Buildozer SDK target directory manually to pre-approve terms
+        mkdir -p "$HOME/.buildozer/android/platform/android-sdk/licenses" || true
+        
+        # Injecting structural official SHA hashes for Android SDK components
+        echo -e "\n2474c18b25f8bc4d5bc0996df89953fa98d34c1a\n2891785227d43fa4d2574d44e5019a14372a95c7\n85165d130ce6d747d50a368b5477815ded4de381\n45f640d756e797d74e11fa3999821ce49442ef99" > "$HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license"
+        echo -e "\n8491bb4c47740d2347f0e7d33fa58a5393524473" > "$HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license"
+
+    - name: Generate Buildozer Target Pipeline
+      run: |
+        # Running build with non-interactive mode enabled
+        export BUILDOZER_ALLOW_ORG_INDEX_LOOKUP=1
+        buildozer --verbose android debug
+
     - name: Upload Final Bootable APK Artifact
       uses: actions/upload-artifact@v4
       with:
