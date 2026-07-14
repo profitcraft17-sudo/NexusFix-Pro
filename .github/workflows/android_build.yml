@@ -34,17 +34,30 @@ jobs:
         pip install --upgrade pip
         pip install buildozer cython virtualenv kivy
 
-    - name: Pre-Create Buildozer System Repositories
+    - name: Pre-Install Android Commandline SDK Tools Globally
       run: |
-        mkdir -p $HOME/.android
-        touch $HOME/.android/repositories.cfg
+        # Downloading official SDK components into buildozer's home directly
+        mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
+        unzip cmdline.zip -d $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
+        mv $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/cmdline-tools $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest
+        
+        # Hardcoding the signed license directory structures directly inside buildozer path
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
         echo -e "\n2474c18b25f8bc4d5bc0996df89953fa98d34c1a\n2891785227d43fa4d2574d44e5019a14372a95c7\n85165d130ce6d747d50a368b5477815ded4de381" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        
+        # Manually accepting licenses using the tools before buildozer even triggers
+        yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses
 
     - name: Generate Buildozer Target Pipeline
       run: |
         export BUILDOZER_ALLOW_ORG_INDEX_LOOKUP=1
-        yes | buildozer --verbose android debug || yes y | buildozer android debug
+        
+        # Pointing buildozer directly to the pre-configured custom directory setup
+        export ANDROIDSDK=$HOME/.buildozer/android/platform/android-sdk
+        
+        # Direct clean execution without broken pipe streams
+        buildozer --verbose android debug
 
     - name: Upload Final Bootable APK Artifact
       uses: actions/upload-artifact@v4
