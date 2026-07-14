@@ -34,29 +34,33 @@ jobs:
         pip install --upgrade pip
         pip install buildozer cython virtualenv kivy
 
-    - name: Pre-Install Android Commandline SDK Tools Globally
+    - name: Force Inject Machine-Level Global Licenses
       run: |
-        # Downloading official SDK components into buildozer's home directly
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
-        unzip cmdline.zip -d $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
-        mv $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/cmdline-tools $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest
+        # Purane saare structures ko clear karke main cache maps inject kar rahe hain
+        rm -rf $HOME/.buildozer
         
-        # Hardcoding the signed license directory structures directly inside buildozer path
+        # System automatic accept layer inside ubuntu engine env
+        mkdir -p $HOME/android-sdk/licenses
+        mkdir -p $HOME/.android
+        touch $HOME/.android/repositories.cfg
+        
+        # Android hardware platform target token hashes
+        HASHES="\n2474c18b25f8bc4d5bc0996df89953fa98d34c1a\n2891785227d43fa4d2574d44e5019a14372a95c7\n85165d130ce6d747d50a368b5477815ded4de381\n45f18502b3a3047fb8231af4b3d814bc50db2d7a"
+        echo -e "$HASHES" > $HOME/android-sdk/licenses/android-sdk-license
+        
+        # Copied same global keys for buildozer auto-generated internal structures
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-        echo -e "\n2474c18b25f8bc4d5bc0996df89953fa98d34c1a\n2891785227d43fa4d2574d44e5019a14372a95c7\n85165d130ce6d747d50a368b5477815ded4de381" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-        
-        # Manually accepting licenses using the tools before buildozer even triggers
-        yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses
+        echo -e "$HASHES" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
 
     - name: Generate Buildozer Target Pipeline
       run: |
         export BUILDOZER_ALLOW_ORG_INDEX_LOOKUP=1
         
-        # Pointing buildozer directly to the pre-configured custom directory setup
-        export ANDROIDSDK=$HOME/.buildozer/android/platform/android-sdk
+        # Declaring strict global auto-accept parameters directly inside Python engine
+        export ANDROID_HOME=$HOME/android-sdk
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
         
-        # Direct clean execution without broken pipe streams
+        # Strict continuous parameter script simulation without standard input breakups
         buildozer --verbose android debug
 
     - name: Upload Final Bootable APK Artifact
