@@ -29,27 +29,21 @@ jobs:
     - name: Fix Broken Linux Packages & Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libunwind-dev git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libffi-dev libgstreamer1.0-dev wget m4
+        sudo apt-get install -y libunwind-dev git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libffi-dev wget m4
+        sudo apt-get install -y gstreamer1.0-plugins-base libgstreamer-plugins-base1.0-dev
         pip install --upgrade pip
         pip install buildozer cython virtualenv kivy
 
     - name: Pre-Create Buildozer System Repositories
       run: |
-        # Buildozer ke internal structure folder ko pehle hi generate kar rahe hain
         mkdir -p $HOME/.android
         touch $HOME/.android/repositories.cfg
-        
-        # Buildozer cache default home system maps
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-        
-        # Injected exact hardware signed license hashes directly into buildozer core path
         echo -e "\n2474c18b25f8bc4d5bc0996df89953fa98d34c1a\n2891785227d43fa4d2574d44e5019a14372a95c7\n85165d130ce6d747d50a368b5477815ded4de381" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
 
     - name: Generate Buildozer Target Pipeline
       run: |
         export BUILDOZER_ALLOW_ORG_INDEX_LOOKUP=1
-        
-        # Standard input bypass streams - Agar system license block launch karega, automation autofeed ho jayega
         yes | buildozer --verbose android debug || yes y | buildozer android debug
 
     - name: Upload Final Bootable APK Artifact
