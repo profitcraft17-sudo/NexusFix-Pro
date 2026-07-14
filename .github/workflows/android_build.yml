@@ -26,6 +26,9 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
+    - name: Setup System Android SDK Device Tools
+      uses: android-actions/setup-android@v3
+
     - name: Fix Broken Linux Packages & Install Dependencies
       run: |
         sudo apt-get update
@@ -34,24 +37,18 @@ jobs:
         pip install --upgrade pip
         pip install buildozer cython virtualenv kivy
 
-    - name: Force Accept Android SDK Licenses Before Buildozer
+    - name: Global Auto-Accept System Platform Licenses
       run: |
-        # Pre-creating systems paths to inject standard licenses directly
         mkdir -p ~/.android
         touch ~/.android/repositories.cfg
-        
-        # Creating Buildozer SDK target directory manually to pre-approve terms
-        mkdir -p "$HOME/.buildozer/android/platform/android-sdk/licenses" || true
-        
-        # Injecting structural official SHA hashes for Android SDK components
-        echo -e "\n2474c18b25f8bc4d5bc0996df89953fa98d34c1a\n2891785227d43fa4d2574d44e5019a14372a95c7\n85165d130ce6d747d50a368b5477815ded4de381\n45f640d756e797d74e11fa3999821ce49442ef99" > "$HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license"
-        echo -e "\n8491bb4c47740d2347f0e7d33fa58a5393524473" > "$HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license"
+        # Automatically accepts all licenses via official system sdkmanager path
+        yes | sdkmanager --licenses || true
 
     - name: Generate Buildozer Target Pipeline
       run: |
-        # Running build with non-interactive mode enabled
+        # Pure isolated runtime execution to let Buildozer download cleanly
         export BUILDOZER_ALLOW_ORG_INDEX_LOOKUP=1
-        buildozer --verbose android debug
+        yes | buildozer --verbose android debug
 
     - name: Upload Final Bootable APK Artifact
       uses: actions/upload-artifact@v4
